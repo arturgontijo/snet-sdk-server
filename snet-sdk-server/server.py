@@ -14,8 +14,8 @@ import ipfsapi
 from snet import sdk
 from snet.snet_cli.utils_ipfs import safe_extract_proto_from_ipfs
 
-SDK_SERVICE_DIR = Path(__file__).absolute().parent
-sys.path.insert(0, "{}".format(SDK_SERVICE_DIR))
+SDK_SERVER_DIR = Path(__file__).absolute().parent
+sys.path.insert(0, "{}".format(SDK_SERVER_DIR))
 from utils.proto_tools import load_proto, input_factory, output_factory
 
 
@@ -44,7 +44,7 @@ class SDKServer:
                 "eth_rpc_endpoint": self.eth_rpc_endpoint})
         metadata = snet_sdk.get_service_metadata(self.org_id, self.service_id)
         ipfs_client = ipfsapi.connect("http://ipfs.singularitynet.io", 80)
-        proto_dir = "{}/protos".format(SDK_SERVICE_DIR)
+        proto_dir = "{}/protos".format(SDK_SERVER_DIR)
         if os.path.exists(proto_dir):
             shutil.rmtree(proto_dir)
         safe_extract_proto_from_ipfs(ipfs_client,
