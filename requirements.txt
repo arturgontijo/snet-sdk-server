@@ -1,0 +1,5 @@
+snet-sdk
+Flask
+flask-cors
+grpcio
+grpcio-tools
