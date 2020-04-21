@@ -6,8 +6,6 @@ import json
 from pathlib import Path
 import traceback
 
-import grpc
-
 from flask import Flask, request
 
 import ipfsapi
@@ -39,9 +37,19 @@ class SDKServer:
         self.private_key = private_key
 
         # Getting Service .proto file(s) from its Metadata
+        _, _, services_dict, classes, stubs = load_proto(self.get_proto())
+        self.services_dict = services_dict
+        self.classes = classes
+        self.stubs = stubs
+
+        if use_cors:
+            from flask_cors import CORS
+            CORS(self.app)
+
+    def get_proto(self):
         snet_sdk = sdk.SnetSDK(config={
-                "private_key": self.private_key,
-                "eth_rpc_endpoint": self.eth_rpc_endpoint})
+            "private_key": self.private_key,
+            "eth_rpc_endpoint": self.eth_rpc_endpoint})
         metadata = snet_sdk.get_service_metadata(self.org_id, self.service_id)
         ipfs_client = ipfsapi.connect("http://ipfs.singularitynet.io", 80)
         proto_dir = "{}/protos".format(SDK_SERVER_DIR)
@@ -50,14 +58,7 @@ class SDKServer:
         safe_extract_proto_from_ipfs(ipfs_client,
                                      metadata["model_ipfs_hash"],
                                      proto_dir)
-        _, _, services_dict, classes, stubs = load_proto(proto_dir)
-        self.services_dict = services_dict
-        self.classes = classes
-        self.stubs = stubs
-
-        if use_cors:
-            from flask_cors import CORS
-            CORS(self.app)
+        return proto_dir
 
     def serve(self):
         @self.app.route("/", methods=["GET", "POST"])

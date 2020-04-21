@@ -1,4 +1,4 @@
-snet-sdk
+git+git://github.com/singnet/snet-cli.git
 Flask
 flask-cors
 grpcio
