@@ -24,6 +24,7 @@ class SDKServer:
                  eth_rpc_endpoint,
                  org_id, service_id, group_name,
                  private_key,
+                 log,
                  use_cors=False):
 
         self.app = Flask(__name__)
@@ -42,11 +43,15 @@ class SDKServer:
         self.classes = classes
         self.stubs = stubs
 
+        # Logger
+        self.log = log
+
         if use_cors:
             from flask_cors import CORS
             CORS(self.app)
 
     def get_proto(self):
+        self.log.info("Getting protobuf files from IPFS...")
         snet_sdk = sdk.SnetSDK(config={
             "private_key": self.private_key,
             "eth_rpc_endpoint": self.eth_rpc_endpoint})
@@ -58,6 +63,7 @@ class SDKServer:
         safe_extract_proto_from_ipfs(ipfs_client,
                                      metadata["model_ipfs_hash"],
                                      proto_dir)
+        self.log.info("Done!")
         return proto_dir
 
     def serve(self):
@@ -66,6 +72,7 @@ class SDKServer:
         def rest_to_grpc(path=None):
             if request.method in ["GET", "POST"]:
                 try:
+                    self.log.info("Got a request...")
                     req = None
                     if request.method == "GET":
                         if not request.args:
@@ -85,7 +92,9 @@ class SDKServer:
 
                     service = path_list[0]
                     if service not in self.services_dict:
-                        return {"Error": "Invalid gRPC service.", **self.services_dict}, 500
+                        error_msg = "Invalid gRPC service."
+                        self.log.error(error_msg)
+                        return {"Error": error_msg, **self.services_dict}, 500
 
                     if not req:
                         if request.data:
@@ -99,7 +108,9 @@ class SDKServer:
                         method = req.get("method", list(self.services_dict[service].keys())[0])
 
                     if method not in self.services_dict[service].keys():
-                        return {"Error": "Invalid gRPC method.", **self.services_dict[service]}, 500
+                        error_msg = "Invalid gRPC method."
+                        self.log.error(error_msg)
+                        return {"Error": error_msg, **self.services_dict[service]}, 500
 
                     # Free calls: Removing its fields from the Request to route only the gPRC ones.
                     token = req.get("token", "")
@@ -110,7 +121,9 @@ class SDKServer:
                         del req["expiration"]
                         del req["email"]
                     else:
-                        return {"Error": "token, expiration and email fields are required!"}, 500
+                        error_msg = "email, token, expiration and email fields are required!"
+                        self.log.error(error_msg)
+                        return {"Error": error_msg}, 500
 
                     input_message = self.services_dict[service][method]["input"]
                     input_dict = input_factory(req, input_message, self.classes)
@@ -125,22 +138,27 @@ class SDKServer:
                         "email": email
                     }
 
+                    self.log.info("Setting up the SDK...")
                     snet_sdk = sdk.SnetSDK(config)
                     client = snet_sdk.create_service_client(self.org_id,
                                                             self.service_id,
                                                             self.stubs[service],
                                                             group_name=self.group_name)
+                    self.log.info("Calling the service...")
                     method_stub = getattr(client.service, method, None)
                     response = method_stub(grpc_input)
                     output_message = self.services_dict[service][method]["output"]
                     output_dict = output_factory(response, output_message)
+                    self.log.info("Request processed!")
                     return output_dict, 200
 
                 except Exception as e:
-                    print("{}\n{}".format(e, traceback.print_exc()))
+                    self.log.error("{}\n{}".format(e, traceback.print_exc()))
                     return {"Error": "Invalid gRPC request.", **self.services_dict}, 500
 
-            return {"Error": "Invalid HTTP request (use POST)."}, 500
+            error_msg = "Invalid HTTP request (use POST)."
+            self.log.error(error_msg)
+            return {"Error": error_msg}, 500
 
         self.app.run(debug=False,
                      host=self.host,

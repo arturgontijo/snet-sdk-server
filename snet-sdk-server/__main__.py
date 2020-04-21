@@ -1,7 +1,12 @@
 import os
 import argparse
+import logging
 
 from server import SDKServer
+
+
+logging.basicConfig(level=10, format="%(asctime)s - [%(levelname)8s] - %(name)s - %(message)s")
+log = logging.getLogger("snet_sdk_server")
 
 
 if __name__ == '__main__':
@@ -34,11 +39,11 @@ if __name__ == '__main__':
     parser.add_argument("--host",
                         type=str,
                         default=os.environ.get("SDK_SERVER_HOST", "localhost"),
-                        help="Transcoder server host.")
+                        help="SDK server host.")
     parser.add_argument("--port",
                         type=int,
                         default=os.environ.get("SDK_SERVER_PORT", 7000),
-                        help="Transcoder server port.")
+                        help="SDK server port.")
     parser.add_argument("--cors",
                         action='store_true',
                         default=os.environ.get("SDK_SERVER_CORS", False),
@@ -65,16 +70,17 @@ if __name__ == '__main__':
                             service_id=args.service,
                             group_name=args.group,
                             private_key=args.pk,
+                            log=log,
                             use_cors=args.cors)
 
-    print("\n================== Configurations ==================")
+    log.info("\n================== Configurations ==================")
     for k, v in vars(args).items():
         if k == "pk":
             v = "********"
         tabs = "\t"
         if len(k) < 8:
             tabs = "\t\t"
-        print("{}{}{}".format(k, tabs, v))
-    print("====================================================\n")
+        log.info("{}{}{}".format(k, tabs, v))
+    log.info("====================================================\n")
     
     rest_server.serve()
