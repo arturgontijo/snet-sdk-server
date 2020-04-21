@@ -73,7 +73,7 @@ if __name__ == '__main__':
                             log=log,
                             use_cors=args.cors)
 
-    log.info("\n================== Configurations ==================")
+    log.info("================== Configurations ==================")
     for k, v in vars(args).items():
         if k == "pk":
             v = "********"
@@ -81,6 +81,6 @@ if __name__ == '__main__':
         if len(k) < 8:
             tabs = "\t\t"
         log.info("{}{}{}".format(k, tabs, v))
-    log.info("====================================================\n")
+    log.info("====================================================")
     
     rest_server.serve()
