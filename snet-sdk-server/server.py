@@ -37,14 +37,14 @@ class SDKServer:
         self.group_name = group_name
         self.private_key = private_key
 
+        # Logger
+        self.log = log
+
         # Getting Service .proto file(s) from its Metadata
         _, _, services_dict, classes, stubs = load_proto(self.get_proto())
         self.services_dict = services_dict
         self.classes = classes
         self.stubs = stubs
-
-        # Logger
-        self.log = log
 
         if use_cors:
             from flask_cors import CORS
